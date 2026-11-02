@@ -78,6 +78,10 @@ details .who{margin-left:auto;flex:none}
 .qsec{font-size:1.05rem;margin-top:10px}
 .empty{color:var(--muted);font-style:italic}
 .note{background:var(--coffee-soft);border-radius:12px;padding:12px 16px;font-size:.92rem}
+.note ul{margin:6px 0 0;padding-left:20px}
+.cue{margin:10px 0 0;padding:8px 12px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:.9rem;max-width:72ch}
+.cue b{color:var(--accent)}
+kbd{display:inline-block;min-width:22px;padding:0 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--surface);font:700 .8rem/1.5 inherit;text-align:center}
 [hidden]{display:none!important}
 @media (max-width:900px){
   .wrap{grid-template-columns:minmax(0,1fr)}
@@ -115,7 +119,7 @@ details .who{margin-left:auto;flex:none}
         <div class="card"><b>Ne pas lire</b><span>Retenir les idées et les transitions, parler en regardant la classe.</span></div>
         <div class="card"><b>Tester le mini-ERP</b><span>Chacun fait les 8 missions et le quiz une fois : <a href="https://msignate.github.io/mini-erp-cafe-nova/" target="_blank" rel="noopener">ouvrir le mini-ERP</a>.</span></div>
       </div>
-      <div class="note">Fichier à projeter : <b>ERP_Sage_final.pptx</b>. Une répétition complète chronométrée avant le jour J, et un test du QR code sur téléphone.</div>
+      <div class="note">Présentation à projeter : <a href="../presentation/" target="_blank" rel="noopener"><b>la présentation interactive</b></a> (en secours : <b>ERP_Sage_final.pptx</b>). Les numéros de diapo ci-dessous sont ceux affichés en bas à droite (« Diapo 8 / 14 »).<ul><li><kbd>→</kbd> ou <kbd>Espace</kbd> : étape suivante. Certaines diapos demandent plusieurs appuis : c'est indiqué sous chaque texte.</li><li><kbd>N</kbd> : notes et chronomètre · <kbd>O</kbd> : vue d'ensemble · <kbd>F</kbd> : plein écran · <kbd>B</kbd> : écran noir</li></ul>Une répétition complète chronométrée avant le jour J, et un test du QR code sur téléphone.</div>
     </section>
 
     <section id="repartition">
@@ -146,6 +150,24 @@ const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replac
 let person = "Tous";
 try { person = localStorage.getItem("script-person") || "Tous"; } catch(e) {}
 
+// quand appuyer sur → dans la présentation interactive
+const CUES = {
+  1: "Écran titre. <kbd>→</kbd> quand tu commences à parler de la problématique.",
+  2: "<kbd>→</kbd> au début : la carte de la problématique apparaît. <kbd>→</kbd> à « Pour y répondre » : la carte des 7 parties se déploie.",
+  3: "<kbd>→</kbd> à « Avec un ERP » : les modules se rangent autour de la base de données.",
+  4: "1 appui : la frise se déroule toute seule.",
+  5: "1 appui : chiffres et modèle économique.",
+  6: "1 appui : les marches de la gamme apparaissent.",
+  7: "1 appui : le menu des modules de Sage X3 est encadré en doré.",
+  8: "3 appuis. <kbd>→</kbd> au début : devis → facture. <kbd>→</kbd> à « L'ERP enregistre trois choses » : les montants passent dans l'écriture. <kbd>→</kbd> à « Ensuite, le paiement » : fin du parcours.",
+  9: "1 appui : les 6 étapes, puis avantages et limites.",
+  10: "1 appui : le tableau, les deux dernières colonnes en surbrillance.",
+  11: "1 appui : les trois piliers.",
+  12: "<kbd>→</kbd> au début : la SWOT. <kbd>→</kbd> à « Notre avis » : forces, faiblesses et menaces s'allument.",
+  13: "<kbd>→</kbd> au début : les 3 recommandations. <kbd>→</kbd> à « Notre réponse à la problématique » : la carte se retourne.",
+  14: "1 appui : écran « Des questions ? » avec le QR code."
+};
+
 // texte de la diapo 14
 DATA.slides.forEach(s => { if (s.n === 14) { s.dur = "30 s"; s.text = "Avant vos questions : scannez ce QR code. C'est un mini-ERP que nous avons construit, parce que Sage n'est pas accessible librement. Vous êtes le gestionnaire de Café Nova, un torréfacteur fictif. En 8 missions guidées, vous créez un client, une facture, et vous voyez ce que l'ERP en fait tout seul : l'écriture comptable, la TVA, le tableau de bord. Il y a aussi un quiz de 10 questions. Ce n'est pas Sage, c'est sa logique : une seule saisie, et tout le reste suit. Puis ouvrir les questions (voir la partie 2)."; } });
 
@@ -155,7 +177,7 @@ function render(){
   document.getElementById("filters").innerHTML = ["Tous", ...PEOPLE].map(p => `<button class="chip" type="button" data-p="${p}" aria-pressed="${p === person}">${p}</button>`).join("") + `<span class="hint">${person === "Tous" ? "Tout le groupe" : "Seulement la partie de " + person}</span>`;
   document.getElementById("repBody").innerHTML = REP.filter(r => involves(r[0])).map(r => `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
   const sl = DATA.slides.filter(s => involves(s.who));
-  document.getElementById("slides").innerHTML = sl.map(s => `<article class="slide" id="diapo-${s.n}"><div class="num">${s.n}</div><div><h3>${esc(s.title)}</h3><div class="meta"><span class="pill">${s.who}</span>${s.dur ? `<span class="pill t">≈ ${esc(s.dur)}</span>` : ""}</div><p>${esc(s.text)}</p></div></article>`).join("");
+  document.getElementById("slides").innerHTML = sl.map(s => `<article class="slide" id="diapo-${s.n}"><div class="num">${s.n}</div><div><h3>${esc(s.title)}</h3><div class="meta"><span class="pill">${s.who}</span>${s.dur ? `<span class="pill t">≈ ${esc(s.dur)}</span>` : ""}</div><p>${esc(s.text)}</p>${CUES[s.n] ? `<p class="cue"><b>À l'écran :</b> ${CUES[s.n]}</p>` : ""}</div></article>`).join("");
   document.getElementById("navScript").innerHTML = `<span class="lab">Script</span>` + sl.map(s => `<a href="#diapo-${s.n}"><span class="n">${s.n}</span>${esc(s.title)}</a>`).join("");
   renderQA();
 }
