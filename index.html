@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Simulateur Café Nova</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell — header band, module rail on the left (horizontal scroller on phones), ledger-paper work area */
+:root{
+  --bg:#EDF2EE; --surface:#FFFFFF; --surface-2:#F5F8F5; --ink:#15302A; --muted:#566A62; --line:#D2DCD5; --rule:#E4ECE6;
+  --accent:#0D6B52; --accent-ink:#FFFFFF; --accent-soft:#DBEEE5;
+  --coffee:#97461A; --coffee-soft:#F5E5D8;
+  --ok:#1E7338; --ok-soft:#DDF0E2; --warn:#8F5400; --warn-soft:#FBEBD0; --bad:#B0281F; --bad-soft:#F8DEDB;
+  --shadow:0 1px 2px rgba(20,48,42,.06),0 6px 18px rgba(20,48,42,.06);
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Public Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1916; --surface:#15231E; --surface-2:#1A2B25; --ink:#E3EDE8; --muted:#9BAFA7; --line:#2B3E37; --rule:#21332C;
+  --accent:#4FC29B; --accent-ink:#06261B; --accent-soft:#183A2F;
+  --coffee:#E79A63; --coffee-soft:#3A2618;
+  --ok:#6CD08B; --ok-soft:#173523; --warn:#F0B45A; --warn-soft:#3A2B12; --bad:#F2877F; --bad-soft:#3E1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1916; --surface:#15231E; --surface-2:#1A2B25; --ink:#E3EDE8; --muted:#9BAFA7; --line:#2B3E37; --rule:#21332C;
+  --accent:#4FC29B; --accent-ink:#06261B; --accent-soft:#183A2F;
+  --coffee:#E79A63; --coffee-soft:#3A2618;
+  --ok:#6CD08B; --ok-soft:#173523; --warn:#F0B45A; --warn-soft:#3A2B12; --bad:#F2877F; --bad-soft:#3E1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700}
+h2{font-size:1.3rem;font-weight:700}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.eyebrow{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);grid-template-rows:auto 1fr;gap:16px 24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px;max-width:1440px;margin:0 auto}
+.top{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 18px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:38px;height:38px;border-radius:10px;background:var(--coffee);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.brand b{font-family:var(--display);font-size:1.08rem;display:block}
+.brand span{font-size:.8rem;color:var(--muted)}
+.progress{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:200px}
+.bar{flex:1;height:8px;border-radius:99px;background:var(--rule);overflow:hidden;min-width:90px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.side{display:flex;flex-direction:column;gap:14px;align-self:start;position:sticky;top:max(16px,env(safe-area-inset-top,0px))}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.navgroup .eyebrow{padding:0 10px 4px}
+.navbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:9px;cursor:pointer;color:var(--ink);font-weight:500}
+.navbtn:hover{background:var(--surface)}
+.navbtn[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.navbtn .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.navbtn[aria-current="page"] .dot{background:var(--accent-ink)}
+.navbtn .tag{margin-left:auto;font-size:.7rem;background:var(--coffee-soft);color:var(--coffee);border-radius:99px;padding:1px 7px;font-weight:600}
+
+main{min-width:0;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
+.card.flat{background:var(--surface-2)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:end;justify-content:space-between}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 13px;cursor:pointer;font-weight:600;font-size:.9rem;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.coffee{background:var(--coffee);border-color:var(--coffee);color:var(--surface)}
+.btn.ghost{background:none}
+.btn.sm{padding:4px 10px;font-size:.82rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted);min-width:0}
+input.i,select.i{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:.95rem;color:var(--ink);width:100%;min-width:0;font-weight:400}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+
+.note{display:flex;gap:12px;background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.note b{font-weight:700}
+.note.coffee{background:var(--coffee-soft)}
+.note .k{font-family:var(--display);font-weight:700;color:var(--accent);flex:none}
+.note.coffee .k{color:var(--coffee)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tr.new td{background:var(--accent-soft)}
+tr.tot td{font-weight:700;background:var(--surface-2);border-top:1px solid var(--line)}
+tr.entry-head td{background:var(--surface-2);font-weight:600;font-size:.84rem}
+.indent{padding-left:28px}
+
+.pill{display:inline-block;border-radius:99px;padding:2px 9px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.p-devis{background:var(--coffee-soft);color:var(--coffee)}
+.p-commande,.p-livraison{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.p-facture{background:var(--accent-soft);color:var(--accent)}
+.p-ok{background:var(--ok-soft);color:var(--ok)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-j{font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);color:var(--ink)}
+.lett{font-family:var(--mono);font-weight:700;color:var(--accent)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .v{font-family:var(--mono);font-size:1.35rem;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:.8rem;color:var(--muted)}
+
+.missions{display:flex;flex-direction:column;gap:8px;counter-reset:m}
+.mission{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.mission .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-weight:500;border:1.5px solid var(--line);color:var(--muted)}
+.mission.done .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.mission.current{border-color:var(--accent);box-shadow:var(--shadow)}
+.mission p{font-size:.86rem;color:var(--muted)}
+
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chain .step{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 10px;font-size:.85rem;font-weight:600}
+.chain .step.hl{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chain .arrow{color:var(--muted)}
+
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;background:var(--surface);border:1px dashed var(--accent);border-radius:12px;padding:10px 14px}
+.banner .eyebrow{color:var(--accent)}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tab{border:0;background:none;padding:8px 12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* invoice paper preview */
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px;box-shadow:var(--shadow);font-size:.86rem}
+.paper .ph{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.paper .legal{margin-top:14px;font-size:.72rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:8px}
+
+.bars{display:flex;flex-direction:column;gap:10px}
+.barrow{display:grid;grid-template-columns:minmax(90px,170px) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.86rem}
+.barrow .track{height:14px;background:var(--rule);border-radius:4px;overflow:hidden}
+.barrow .fill{height:100%;background:var(--accent);border-radius:4px}
+.barrow .fill.c{background:var(--coffee)}
+
+.ei-steps{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ei-steps span{font-size:.72rem;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.ei-steps span.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.chat{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding:4px}
+.msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:.92rem}
+.msg.u{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.b{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.b ul{margin:6px 0 0;padding-left:18px}
+.msg pre{white-space:pre-wrap;font-family:var(--body);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;font-size:.84rem;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.q{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface)}
+.q .opts{display:grid;gap:6px;margin-top:10px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:8px 12px;cursor:pointer}
+.opt.good{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:600}
+.opt.badc{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.expl{margin-top:8px;font-size:.86rem;color:var(--muted)}
+
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.gloss div{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.gloss b{font-family:var(--display);display:block;margin-bottom:2px}
+
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:8px 12px;font-weight:600;font-size:.88rem}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:20}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{grid-column:1/-1;font-size:.78rem;color:var(--muted);padding-top:8px}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:4px}
+  .navgroup{flex-direction:row;gap:4px}
+  .navgroup .eyebrow{display:none}
+  .navbtn{white-space:nowrap;background:var(--surface);border:1px solid var(--line)}
+  .navbtn .dot,.navbtn .tag{display:none}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .progress{margin-left:0;width:100%}
+}
+@media (max-width:480px){.kpis{grid-template-columns:minmax(0,1fr)}.mission{grid-template-columns:30px minmax(0,1fr)}.mission .btn{grid-column:2}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c0 1.5 1.5 1.5 1.5 3M12 3c0 1.5 1.5 1.5 1.5 3"/></svg></div>
+      <div><b id="coName">Café Nova SAS</b><span>Dossier fictif · Exercice 2026 · Mini-ERP pédagogique</span></div>
+    </div>
+    <div class="progress"><span class="small muted" id="progLabel">Missions 0/8</span><div class="bar"><i id="progBar" style="width:0"></i></div></div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+  <nav class="side" id="nav" aria-label="Modules"></nav>
+  <main id="main"></main>
+  <footer>Mini-ERP pédagogique réalisé pour l'exposé « L'ERP Sage » — L. Boukhit, N. Mezzai, B. Ben Slama, A. Evina, L. Hernández Aguirre, M. Signaté (Master 2 Data &amp; IA). Ce n'est pas un logiciel Sage : données fictives, comptabilité simplifiée pour apprendre la logique d'un ERP.</footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const KEY = "cafenova-sim-v1";
+const PCG = {
+  "101000":"Capital social","401000":"Fournisseurs","411000":"Clients","445660":"TVA déductible sur biens et services",
+  "445710":"TVA collectée","512000":"Banque","602600":"Achats d'emballages","606100":"Fournitures non stockables (eau, énergie)",
+  "607000":"Achats de marchandises","613200":"Locations immobilières","626000":"Frais postaux et télécommunications",
+  "706000":"Prestations de services","707000":"Ventes de marchandises"
+};
+const CHARGE_ACCOUNTS = ["607000","602600","606100","613200","626000"];
+const CHAIN = ["devis","commande","livraison","facture"];
+const PREFIX = {devis:"DE",commande:"BC",livraison:"BL",facture:"FA"};
+const LABEL = {devis:"Devis",commande:"Bon de commande",livraison:"Bon de livraison",facture:"Facture"};
+const EI_STEPS = ["Déposée","Mise à disposition","Prise en charge","Approuvée","Encaissée"];
+const JOURNALS = {VT:"Ventes",AC:"Achats",BQ:"Banque",OD:"Opérations diverses"};
+
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const fmt = n => r2(n).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €";
+const money = n => `<span class="num">${fmt(n)}</span>`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const dfr = iso => iso ? iso.split("-").reverse().join("/") : "";
+const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+const rateLabel = r => String(r).replace(".", ",") + " %";
+
+let S;
+let ui = {view:"accueil", comptaTab:"journaux", journal:"all", compte:"411000", etatsTab:"resultat", selDoc:null, confirmReset:false, piece:null};
+let draft = {client:"", lines:[{ref:"CAF-ESP",qty:10}]};
+let draftA = {fournisseur:"", libelle:"", compte:"607000", ht:"", rate:20, date:today()};
+let draftC = {kind:"client", name:"", city:"", email:""};
+
+/* ---------- état & actions métier ---------- */
+function blank(){
+  return {company:{name:"Café Nova SAS"}, clients:[], fournisseurs:[], articles:[], docs:[], achats:[], entries:[],
+    seq:{DE:0,BC:0,BL:0,FA:0,AC:0,E:0,L:0}, flags:{}, chat:[], quiz:{}};
+}
+function nextId(p){ S.seq[p] = (S.seq[p] || 0) + 1; return p + String(S.seq[p]).padStart(4,"0"); }
+function nextLetter(){ S.seq.L++; let n = S.seq.L, s = ""; while (n > 0){ n--; s = String.fromCharCode(65 + n % 26) + s; n = Math.floor(n / 26); } return s; }
+const art = ref => S.articles.find(a => a.ref === ref);
+const docById = id => S.docs.find(d => d.id === id);
+const achatById = id => S.achats.find(a => a.id === id);
+const tiersName = code => (S.clients.find(c => c.code === code) || S.fournisseurs.find(f => f.code === code) || {name:code}).name;
+
+function tiersCode(prefix, name, list){
+  const base = prefix + (name.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6) || "TIERS");
+  let code = base, i = 2;
+  while (list.some(t => t.code === code)) code = base + (i++);
+  return code;
+}
+function addTiers(kind, o, user){
+  const list = kind === "client" ? S.clients : S.fournisseurs;
+  const t = {code:tiersCode(kind === "client" ? "411" : "401", o.name, list), name:o.name, city:o.city || "", email:o.email || "", delai:30, user:!!user};
+  list.push(t); return t;
+}
+function totals(lines){
+  const L = lines.map(l => { const ht = r2(l.qty * l.price), tva = r2(ht * l.rate / 100); return {...l, ht, tva, ttc:r2(ht + tva)}; });
+  const byRate = {}, byCompte = {};
+  L.forEach(l => {
+    byRate[l.rate] = byRate[l.rate] || {base:0,tva:0};
+    byRate[l.rate].base = r2(byRate[l.rate].base + l.ht); byRate[l.rate].tva = r2(byRate[l.rate].tva + l.tva);
+    byCompte[l.compte] = r2((byCompte[l.compte] || 0) + l.ht);
+  });
+  const ht = r2(L.reduce((s,l) => s + l.ht, 0)), tva = r2(L.reduce((s,l) => s + l.tva, 0));
+  return {L, ht, tva, ttc:r2(ht + tva), byRate, byCompte};
+}
+function postEntry(journal, date, piece, libelle, lignes, user){
+  const e = {id:nextId("E"), journal, date, piece, libelle, lignes:lignes.filter(l => l.debit || l.credit), user:!!user};
+  S.entries.push(e); return e;
+}
+function saleLines(d){
+  const t = totals(d.lines);
+  const lig = [{compte:"411000", tiers:d.client, debit:t.ttc, credit:0}];
+  Object.entries(t.byCompte).forEach(([c,v]) => lig.push({compte:c, debit:0, credit:v}));
+  lig.push({compte:"445710", debit:0, credit:t.tva});
+  return lig;
+}
+function makeLines(arr){ return arr.map(([ref,qty]) => { const a = art(ref); return {ref, qty:Number(qty), label:a.label, price:a.price, rate:a.rate, compte:a.compte}; }); }
+function createDevis(client, lines, date, user){
+  const d = {id:nextId("DE"), type:"devis", client, lines, date, status:"ouvert", user:!!user};
+  S.docs.push(d); return d;
+}
+function transform(id, date){
+  const d = docById(id); const i = CHAIN.indexOf(d.type);
+  if (i < 0 || i >= 3 || d.status !== "ouvert") return null;
+  const t = CHAIN[i+1];
+  const n = {id:nextId(PREFIX[t]), type:t, client:d.client, lines:d.lines.map(l => ({...l})), date, status:t === "facture" ? "à régler" : "ouvert", from:d.id, origin:d.origin || d.id, user:d.user};
+  d.status = "transformé"; d.to = n.id; S.docs.push(n);
+  if (t === "facture"){
+    n.due = addDays(date, 30);
+    n.entry = postEntry("VT", date, n.id, `Facture ${n.id} – ${tiersName(n.client)}`, saleLines(n), d.user).id;
+  }
+  return n;
+}
+function addAchat(o, user){
+  const ht = r2(Number(o.ht)), tva = r2(ht * Number(o.rate) / 100), ttc = r2(ht + tva);
+  const a = {id:nextId("AC"), fournisseur:o.fournisseur, libelle:o.libelle, compte:o.compte, ht, rate:Number(o.rate), tva, ttc, date:o.date, due:addDays(o.date,30), paid:false, user:!!user};
+  S.achats.push(a);
+  a.entry = postEntry("AC", a.date, a.id, `${a.libelle} – ${tiersName(a.fournisseur)}`,
+    [{compte:a.compte, debit:ht, credit:0},{compte:"445660", debit:tva, credit:0},{compte:"401000", tiers:a.fournisseur, debit:0, credit:ttc}], user).id;
+  return a;
+}
+function encaisser(id, date, user){
+  const f = docById(id); if (!f || f.paid) return;
+  const t = totals(f.lines), L = nextLetter();
+  postEntry("BQ", date, f.id, `Règlement ${f.id} – ${tiersName(f.client)}`,
+    [{compte:"512000", debit:t.ttc, credit:0},{compte:"411000", tiers:f.client, debit:0, credit:t.ttc, lettrage:L}], user);
+  S.entries.find(e => e.id === f.entry).lignes.find(l => l.compte === "411000").lettrage = L;
+  f.paid = true; f.paidDate = date; f.status = "réglée"; f.lettrage = L;
+  if (f.ei){ f.ei.step = 4; f.ei.log.push({s:4, d:date}); }
+}
+function payer(id, date, user){
+  const a = achatById(id); if (!a || a.paid) return;
+  const L = nextLetter();
+  postEntry("BQ", date, a.id, `Paiement ${a.id} – ${tiersName(a.fournisseur)}`,
+    [{compte:"401000", tiers:a.fournisseur, debit:a.ttc, credit:0, lettrage:L},{compte:"512000", debit:0, credit:a.ttc}], user);
+  S.entries.find(e => e.id === a.entry).lignes.find(l => l.compte === "401000").lettrage = L;
+  a.paid = true; a.paidDate = date; a.lettrage = L;
+}
+function chainTo(client, items, dates){
+  let d = createDevis(client, makeLines(items), dates[0], false);
+  for (let k = 1; k < 4; k++) d = transform(d.id, dates[k]);
+  return d;
+}
+
+function seed(){
+  S = blank();
+  const cl = [["Bistrot du Campus","Lyon 7e","contact@bistrot-campus.example"],["Hôtel des Brotteaux","Lyon 6e","compta@hotel-brotteaux.example"],["Boulangerie Martin","Villeurbanne","martin@boulangerie.example"]]
+    .map(([name,city,email]) => addTiers("client", {name,city,email}));
+  const fo = [["Green Bean Import","Le Havre"],["EmballPro","Lyon"],["SCI Les Docks","Lyon"]]
+    .map(([name,city]) => addTiers("fournisseur", {name,city}));
+  S.articles = [
+    {ref:"CAF-ESP", label:"Café en grains Espresso – 1 kg", price:19, rate:5.5, compte:"707000", unit:"kg"},
+    {ref:"CAF-FIL", label:"Café moulu Filtre – 1 kg", price:16.5, rate:5.5, compte:"707000", unit:"kg"},
+    {ref:"FOR-BAR", label:"Formation barista – ½ journée", price:250, rate:20, compte:"706000", unit:"session"},
+    {ref:"LOC-MAC", label:"Location machine espresso – 1 mois", price:89, rate:20, compte:"706000", unit:"mois"}
+  ];
+  postEntry("BQ", "2026-09-01", "CAPITAL", "Apport en capital des associés", [{compte:"512000", debit:10000, credit:0},{compte:"101000", debit:0, credit:10000}], false);
+  const a1 = addAchat({fournisseur:fo[0].code, libelle:"Café vert Brésil & Éthiopie (150 kg)", compte:"607000", ht:1050, rate:5.5, date:"2026-09-05"});
+  const f1 = chainTo(cl[0].code, [["CAF-ESP",20],["LOC-MAC",1]], ["2026-09-10","2026-09-11","2026-09-14","2026-09-15"]);
+  payer(a1.id, "2026-09-20");
+  const f2 = chainTo(cl[1].code, [["CAF-ESP",60],["FOR-BAR",2]], ["2026-09-18","2026-09-20","2026-09-24","2026-09-25"]);
+  f2.ei = {step:3, log:[{s:0,d:"2026-09-25"},{s:1,d:"2026-09-25"},{s:2,d:"2026-09-26"},{s:3,d:"2026-09-29"}]};
+  encaisser(f1.id, "2026-09-30");
+  const a2 = addAchat({fournisseur:fo[2].code, libelle:"Loyer atelier – octobre", compte:"613200", ht:950, rate:20, date:"2026-10-01"});
+  payer(a2.id, "2026-10-05");
+  const f4 = chainTo(cl[0].code, [["CAF-ESP",30],["LOC-MAC",1]], ["2026-10-06","2026-10-07","2026-10-08","2026-10-09"]);
+  addAchat({fournisseur:fo[1].code, libelle:"Sachets kraft à valve (1 000 u.)", compte:"602600", ht:320, rate:20, date:"2026-10-12"});
+  const f3 = chainTo(cl[2].code, [["CAF-FIL",10]], ["2026-10-16","2026-10-17","2026-10-19","2026-10-20"]);
+  f3.ei = {step:1, log:[{s:0,d:"2026-10-20"},{s:1,d:"2026-10-20"}]};
+  encaisser(f4.id, "2026-10-23");
+  S.flags = {};
+  draft.client = ""; draftA.fournisseur = "";
+}
+
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function load(){
+  try { const raw = localStorage.getItem(KEY); if (raw){ S = JSON.parse(raw); return; } } catch(e){}
+  seed();
+}
+
+/* ---------- calculs comptables ---------- */
+function soldes(){
+  const acc = {};
+  S.entries.forEach(e => e.lignes.forEach(l => {
+    const a = acc[l.compte] = acc[l.compte] || {debit:0, credit:0};
+    a.debit = r2(a.debit + l.debit); a.credit = r2(a.credit + l.credit);
+  }));
+  return acc;
+}
+function balanceOf(c, acc){ acc = acc || soldes(); const a = acc[c] || {debit:0,credit:0}; return r2(a.debit - a.credit); }
+function etats(){
+  const acc = soldes();
+  const produits = Object.keys(acc).filter(c => c[0] === "7").sort().map(c => ({c, v:-balanceOf(c,acc)}));
+  const charges = Object.keys(acc).filter(c => c[0] === "6").sort().map(c => ({c, v:balanceOf(c,acc)}));
+  const P = r2(produits.reduce((s,x) => s + x.v, 0)), C = r2(charges.reduce((s,x) => s + x.v, 0));
+  const tvaNet = r2(-balanceOf("445710",acc) - balanceOf("445660",acc));
+  return {acc, produits, charges, P, C, res:r2(P - C), banque:balanceOf("512000",acc), clients:balanceOf("411000",acc),
+    fournisseurs:-balanceOf("401000",acc), capital:-balanceOf("101000",acc), tvaCol:-balanceOf("445710",acc), tvaDed:balanceOf("445660",acc), tvaNet};
+}
+const factures = () => S.docs.filter(d => d.type === "facture");
+const userFacture = () => S.docs.find(d => d.user && d.type === "facture");
+
+/* ---------- missions ---------- */
+const MISSIONS = [
+  {id:"client", t:"Créer votre premier client", view:"tiers",
+    why:"Tout commence par une fiche tiers. Le logiciel lui attribue un compte auxiliaire (411…) pour suivre ce qu'il doit.",
+    done:() => S.clients.some(c => c.user)},
+  {id:"devis", t:"Lui faire un devis", view:"ventes",
+    why:"Le devis reprend les articles, les prix et les taux de TVA. Rien n'est encore comptabilisé.",
+    done:() => S.docs.some(d => d.user && d.type === "devis")},
+  {id:"facture", t:"Transformer le devis jusqu'à la facture", view:"ventes",
+    why:"Devis → bon de commande → bon de livraison → facture, en un clic à chaque étape et sans rien ressaisir.",
+    done:() => !!userFacture()},
+  {id:"ecriture", t:"Retrouver l'écriture comptable créée toute seule", view:"compta",
+    why:"La facture a généré l'écriture dans le journal des ventes. C'est le cœur d'un logiciel intégré.",
+    done:() => !!S.flags.sawEntry},
+  {id:"achat", t:"Saisir une facture fournisseur", view:"achats",
+    why:"Charge au débit, TVA déductible au débit, fournisseur au crédit : le logiciel équilibre pour vous.",
+    done:() => S.achats.some(a => a.user)},
+  {id:"efacture", t:"Envoyer votre facture par la plateforme agréée", view:"efacture",
+    why:"Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir des factures électroniques via une plateforme agréée.",
+    done:() => S.docs.some(d => d.user && d.type === "facture" && d.ei)},
+  {id:"reglement", t:"Encaisser le paiement et lettrer", view:"banque",
+    why:"Le lettrage relie la facture et son règlement : le client ne doit plus rien.",
+    done:() => S.docs.some(d => d.user && d.type === "facture" && d.paid)},
+  {id:"pilotage", t:"Piloter : TVA à payer et question à l'assistant IA", view:"ia",
+    why:"Les mêmes données servent à déclarer la TVA et à répondre aux questions du dirigeant.",
+    done:() => !!(S.flags.sawTVA && S.flags.askedIA)}
+];
+const currentMission = () => MISSIONS.find(m => !m.done());
+
+/* ---------- navigation ---------- */
+const NAV = [
+  {g:"Démarrer", items:[["accueil","Accueil & missions"],["tableau","Tableau de bord"]]},
+  {g:"Gestion commerciale", items:[["tiers","Clients & fournisseurs"],["articles","Articles"],["ventes","Ventes"],["achats","Achats"]]},
+  {g:"Finance", items:[["efacture","Facture électronique"],["banque","Banque"],["compta","Comptabilité"],["etats","États & TVA"]]},
+  {g:"Pilotage & IA", items:[["ia","Assistant IA"]]},
+  {g:"Apprendre", items:[["quiz","Quiz"],["memo","Fiche mémo"]]}
+];
+const VIEWS = NAV.flatMap(g => g.items.map(i => i[0]));
+
+function renderNav(){
+  const cm = currentMission();
+  document.getElementById("nav").innerHTML = NAV.map(g => `<div class="navgroup"><span class="eyebrow">${g.g}</span>${
+    g.items.map(([v,l]) => `<button class="navbtn" data-act="go" data-v="${v}" ${ui.view === v ? 'aria-current="page"' : ""}><span class="dot"></span>${l}${cm && cm.view === v ? '<span class="tag">mission</span>' : ""}</button>`).join("")
+  }</div>`).join("");
+  const done = MISSIONS.filter(m => m.done()).length;
+  document.getElementById("progLabel").textContent = `Missions ${done}/${MISSIONS.length}`;
+  document.getElementById("progBar").style.width = (done / MISSIONS.length * 100) + "%";
+  document.getElementById("topActions").innerHTML = ui.confirmReset
+    ? `<div class="confirm">Tout effacer et revenir aux données de départ ?<button class="btn sm" data-act="reset">Oui, réinitialiser</button><button class="btn sm ghost" data-act="cancelReset">Annuler</button></div>`
+    : `<button class="btn sm ghost" data-act="askReset">Réinitialiser le dossier</button>`;
+}
+function banner(){
+  const m = currentMission();
+  if (!m) return `<div class="banner"><span class="eyebrow">Bravo</span><span>Les 8 missions sont terminées. Testez vos connaissances dans le <a href="#quiz" data-act="go" data-v="quiz">quiz</a>.</span></div>`;
+  const i = MISSIONS.indexOf(m) + 1;
+  return `<div class="banner"><span class="eyebrow">Mission ${i}/8</span><span style="flex:1;min-width:200px"><b>${m.t}</b> <span class="muted small">— ${m.why}</span></span>${ui.view !== m.view ? `<button class="btn sm primary" data-act="go" data-v="${m.view}">Y aller</button>` : ""}</div>`;
+}
+const note = (k, html, cls = "") => `<div class="note ${cls}"><span class="k">${k}</span><div>${html}</div></div>`;
+const tiersOpts = (list, sel) => list.map(t => `<option value="${t.code}" ${t.code === sel ? "selected" : ""}>${esc(t.name)} (${t.code})</option>`).join("");
+
+/* ---------- vues ---------- */
+const V = {};
+
+V.accueil = () => {
+  const cm = currentMission();
+  return `
+  <section class="card stack">
+    <span class="eyebrow">Atelier pratique · 20 minutes</span>
+    <h1>Vous gérez Café Nova SAS</h1>
+    <p style="max-width:68ch">Café Nova est un petit torréfacteur lyonnais qui vend du café et des formations aux cafés, hôtels et boulangeries. Vous en êtes le ou la gestionnaire. En 8 missions, dans ce mini-ERP, vous allez faire ce qu'un ERP comme Sage fait chaque jour : vendre, acheter, encaisser, déclarer la TVA et piloter l'entreprise.</p>
+    <div class="chain" aria-label="Parcours d'une vente">
+      ${["Devis","Commande","Livraison","Facture","Écriture comptable","Règlement","TVA & bilan"].map((s,i) => `${i ? '<span class="arrow">→</span>' : ""}<span class="step ${i === 3 || i === 4 ? "hl" : ""}">${s}</span>`).join("")}
+    </div>
+    ${note("Idée clé", "Dans un ERP, on saisit une information <b>une seule fois</b>, dans une base de données commune à tous les services. La facture créée par le commercial devient automatiquement une écriture pour le comptable, une ligne de TVA pour la déclaration et un chiffre pour le tableau de bord.")}
+  </section>
+  <section class="stack">
+    <div class="head"><h2>Vos missions</h2><span class="small muted">La progression s'enregistre dans votre navigateur.</span></div>
+    <div class="missions">${MISSIONS.map((m,i) => `
+      <div class="mission ${m.done() ? "done" : ""} ${m === cm ? "current" : ""}">
+        <span class="n">${m.done() ? "✓" : i + 1}</span>
+        <div><h3>${m.t}</h3><p>${m.why}</p></div>
+        <button class="btn sm ${m === cm ? "primary" : ""}" data-act="go" data-v="${m.view}">${m.done() ? "Revoir" : "Commencer"}</button>
+      </div>`).join("")}</div>
+  </section>
+  <section class="grid2">
+    <div class="card stack"><h3>Ce que vous trouverez déjà dans le dossier</h3>
+      <p class="small muted">3 clients, 3 fournisseurs, 4 articles et deux mois d'activité (septembre et octobre 2026) pour que les tableaux ne soient pas vides. Les lignes que vous créez apparaissent surlignées.</p></div>
+    <div class="card stack"><h3>Correspondance avec Sage</h3>
+      <p class="small muted">Ce mini-ERP reproduit la logique de Sage 100, l'ERP des PME : Gestion commerciale ≈ Sage 100 Gestion commerciale · Comptabilité ≈ Sage 100 Comptabilité · Banque ≈ Sage 100 Trésorerie · Plateforme agréée ≈ la PA intégrée de Sage · Assistant IA ≈ Sage Copilot. Pour les ETI, Sage X3 ajoute achats avancés, production et multi-sites.</p></div>
+  </section>`;
+};
+
+V.tableau = () => {
+  const E = etats();
+  const byClient = {};
+  factures().forEach(f => { byClient[f.client] = r2((byClient[f.client] || 0) + totals(f.lines).ht); });
+  const rows = Object.entries(byClient).sort((a,b) => b[1] - a[1]);
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  const byMonth = {};
+  factures().forEach(f => { const m = f.date.slice(0,7); byMonth[m] = r2((byMonth[m] || 0) + totals(f.lines).ht); });
+  const months = Object.keys(byMonth).sort(); const mmax = Math.max(1, ...Object.values(byMonth));
+  const mName = m => new Date(m + "-15T12:00:00").toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const late = factures().filter(f => !f.paid && f.due < today());
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Pilotage</span><h1>Tableau de bord</h1></div><span class="small muted">Calculé en direct à partir des écritures comptables</span></div>
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Chiffre d'affaires HT</span><div class="v">${fmt(E.P)}</div><span class="s">Comptes 706 + 707</span></div>
+    <div class="kpi"><span class="eyebrow">Résultat</span><div class="v" style="color:${E.res >= 0 ? "var(--ok)" : "var(--bad)"}">${fmt(E.res)}</div><span class="s">Produits − charges</span></div>
+    <div class="kpi"><span class="eyebrow">Trésorerie</span><div class="v">${fmt(E.banque)}</div><span class="s">Solde du compte 512</span></div>
+    <div class="kpi"><span class="eyebrow">À encaisser</span><div class="v">${fmt(E.clients)}</div><span class="s">Créances clients (411)</span></div>
+  </div>
+  <div class="grid2">
+    <div class="card stack"><h3>Ventes HT par client</h3><div class="bars">${rows.map(([c,v]) => `<div class="barrow"><span>${esc(tiersName(c))}</span><div class="track"><div class="fill" style="width:${v/max*100}%"></div></div>${money(v)}</div>`).join("")}</div></div>
+    <div class="card stack"><h3>Ventes HT par mois</h3><div class="bars">${months.map(m => `<div class="barrow"><span>${mName(m)}</span><div class="track"><div class="fill c" style="width:${byMonth[m]/mmax*100}%"></div></div>${money(byMonth[m])}</div>`).join("")}</div></div>
+  </div>
+  <div class="card stack"><h3>Alertes</h3>
+    ${late.length ? late.map(f => `<div class="row"><span class="pill p-bad">En retard</span><span>${f.id} · ${esc(tiersName(f.client))} · ${money(totals(f.lines).ttc)} · échue le ${dfr(f.due)} (${daysBetween(f.due, today())} j)</span></div>`).join("") : `<p class="muted small">Aucune facture en retard.</p>`}
+    <div class="row"><span class="pill p-warn">TVA</span><span>${E.tvaNet >= 0 ? `TVA nette à reverser à l'État : ${money(E.tvaNet)}` : `Crédit de TVA (plus de TVA payée que collectée) : ${money(-E.tvaNet)}`}</span></div>
+    <div class="row"><span class="pill p-j">401</span><span>Dettes fournisseurs à payer : ${money(E.fournisseurs)}</span></div>
+  </div>
+  ${note("Data", "Chaque chiffre de cette page est une requête sur la même base que la comptabilité. C'est ce qui rend possibles les tableaux de bord en temps réel et les assistants IA.")}`;
+};
+
+V.tiers = () => `${banner()}
+  <div class="head"><div><span class="eyebrow">Gestion commerciale</span><h1>Clients & fournisseurs</h1></div></div>
+  <form class="card stack" data-form="tiers">
+    <h3>Nouvelle fiche</h3>
+    <div class="formgrid">
+      <label class="f">Type<select class="i" id="t-kind" data-dc="kind"><option value="client" ${draftC.kind === "client" ? "selected" : ""}>Client</option><option value="fournisseur" ${draftC.kind === "fournisseur" ? "selected" : ""}>Fournisseur</option></select></label>
+      <label class="f">Raison sociale<input class="i" id="t-name" data-dc="name" required placeholder="ex. Coffee Shop Bellecour" value="${esc(draftC.name)}"></label>
+      <label class="f">Ville<input class="i" id="t-city" data-dc="city" placeholder="Lyon 2e" value="${esc(draftC.city)}"></label>
+      <label class="f">E-mail facturation<input class="i" id="t-email" data-dc="email" type="email" placeholder="compta@exemple.fr" value="${esc(draftC.email)}"></label>
+    </div>
+    <div class="row"><button class="btn primary" type="submit">Créer la fiche</button><span class="small muted">Le compte auxiliaire est créé automatiquement : 411 + nom pour un client, 401 + nom pour un fournisseur.</span></div>
+  </form>
+  <div class="grid2">
+    ${[["Clients", S.clients, "411000"],["Fournisseurs", S.fournisseurs, "401000"]].map(([t,list,c]) => `
+    <div class="stack"><h3>${t} <span class="muted small">(compte collectif ${c})</span></h3>
+    <div class="tablewrap"><table><thead><tr><th>Compte</th><th>Nom</th><th>Ville</th><th class="r">Solde</th></tr></thead><tbody>
+      ${list.map(x => `<tr class="${x.user ? "new" : ""}"><td class="num">${x.code}</td><td>${esc(x.name)}</td><td>${esc(x.city)}</td><td class="r">${money(Math.abs(tiersSolde(x.code)))}</td></tr>`).join("")}
+    </tbody></table></div></div>`).join("")}
+  </div>
+  ${note("Dans Sage", "On parle de <b>tiers</b>. Chaque fiche porte les conditions de paiement, le mode de règlement, l'adresse de facturation électronique et l'historique complet des échanges.")}`;
+
+function tiersSolde(code){
+  let s = 0; S.entries.forEach(e => e.lignes.forEach(l => { if (l.tiers === code) s += l.debit - l.credit; })); return r2(s);
+}
+
+V.articles = () => `${banner()}
+  <div class="head"><div><span class="eyebrow">Gestion commerciale</span><h1>Articles</h1></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Référence</th><th>Désignation</th><th>Unité</th><th class="r">Prix HT</th><th class="r">TVA</th><th>Compte de vente</th></tr></thead><tbody>
+    ${S.articles.map(a => `<tr><td class="num">${a.ref}</td><td>${esc(a.label)}</td><td>${a.unit}</td><td class="r">${money(a.price)}</td><td class="r num">${rateLabel(a.rate)}</td><td><span class="num">${a.compte}</span> <span class="muted small">${PCG[a.compte]}</span></td></tr>`).join("")}
+  </tbody></table></div>
+  ${note("Pourquoi 5,5 % ?", "Le café vendu comme produit alimentaire relève du taux réduit de 5,5 %, alors que la formation et la location de machine sont au taux normal de 20 %. Le logiciel applique le bon taux à chaque ligne : une même facture peut mélanger plusieurs taux.", "coffee")}
+  ${note("Paramétrage", "Chaque article est relié à un compte comptable (706 pour les services, 707 pour les marchandises). C'est ce paramétrage, fait une fois, qui permet ensuite de générer les écritures automatiquement.")}`;
+
+V.ventes = () => {
+  const t = totals(makeLinesSafe(draft.lines));
+  const docs = [...S.docs].reverse();
+  const sel = ui.selDoc && docById(ui.selDoc);
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Gestion commerciale</span><h1>Ventes</h1></div>
+  <div class="chain">${CHAIN.map((c,i) => `${i ? '<span class="arrow">→</span>' : ""}<span class="step ${c === "facture" ? "hl" : ""}">${LABEL[c]}</span>`).join("")}</div></div>
+  <form class="card stack" data-form="devis">
+    <h3>Nouveau devis</h3>
+    <label class="f" style="max-width:420px">Client<select class="i" id="d-client" data-d="client" required><option value="">Choisir un client…</option>${tiersOpts(S.clients, draft.client)}</select></label>
+    <div class="tablewrap"><table><thead><tr><th>Article</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">TVA</th><th class="r">Total HT</th><th></th></tr></thead><tbody>
+      ${draft.lines.map((l,i) => { const a = art(l.ref); return `<tr>
+        <td><select class="i" id="d-ref-${i}" data-d="ref" data-i="${i}">${S.articles.map(x => `<option value="${x.ref}" ${x.ref === l.ref ? "selected" : ""}>${x.ref} · ${esc(x.label)}</option>`).join("")}</select></td>
+        <td class="r"><input class="i num" id="d-qty-${i}" style="width:80px;text-align:right" type="number" min="1" step="1" value="${l.qty}" data-d="qty" data-i="${i}"></td>
+        <td class="r">${money(a.price)}</td><td class="r num">${rateLabel(a.rate)}</td><td class="r" id="d-lht-${i}">${money(r2(a.price * (Number(l.qty) || 0)))}</td>
+        <td>${draft.lines.length > 1 ? `<button class="btn sm ghost" type="button" data-act="delLine" data-i="${i}" aria-label="Supprimer la ligne">✕</button>` : ""}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn sm" type="button" data-act="addLine">+ Ajouter une ligne</button>
+      <div id="d-tot" class="row">${draftTotalsHTML(t)}</div>
+    </div>
+    <div class="row"><button class="btn primary" type="submit">Enregistrer le devis</button><span class="small muted">Un devis n'a aucun impact comptable.</span></div>
+  </form>
+  <div class="grid2" style="align-items:start">
+    <div class="stack"><h3>Documents de vente</h3>
+      <div class="tablewrap"><table><thead><tr><th>N°</th><th>Type</th><th>Client</th><th class="r">TTC</th><th>Action</th></tr></thead><tbody>
+      ${docs.map(d => `<tr class="${d.user ? "new" : ""}">
+        <td><button class="btn sm ghost num" data-act="selDoc" data-id="${d.id}">${d.id}</button></td>
+        <td><span class="pill p-${d.type}">${LABEL[d.type]}</span></td>
+        <td>${esc(tiersName(d.client))}<div class="small muted">${dfr(d.date)}</div></td>
+        <td class="r">${money(totals(d.lines).ttc)}</td>
+        <td>${docAction(d)}</td></tr>`).join("")}
+      </tbody></table></div>
+    </div>
+    <div class="stack"><h3>Aperçu</h3>${sel ? paper(sel) : `<div class="card flat small muted">Cliquez sur un numéro de document pour l'afficher.</div>`}</div>
+  </div>`;
+};
+function makeLinesSafe(lines){ return lines.map(l => { const a = art(l.ref); return {ref:l.ref, qty:Number(l.qty) || 0, label:a.label, price:a.price, rate:a.rate, compte:a.compte}; }); }
+function draftTotalsHTML(t){ return `<span class="small muted">Total HT</span>${money(t.ht)}<span class="small muted">TVA</span>${money(t.tva)}<span class="small muted">TTC</span><b>${money(t.ttc)}</b>`; }
+function docAction(d){
+  if (d.type !== "facture"){
+    if (d.status !== "ouvert") return `<span class="small muted">→ ${d.to}</span>`;
+    const nx = CHAIN[CHAIN.indexOf(d.type) + 1];
+    return `<button class="btn sm ${nx === "facture" ? "primary" : ""}" data-act="transform" data-id="${d.id}">Transformer en ${LABEL[nx].toLowerCase()}</button>`;
+  }
+  return `${d.paid ? `<span class="pill p-ok">Réglée</span>` : (d.due < today() ? `<span class="pill p-bad">En retard</span>` : `<span class="pill p-warn">À régler</span>`)} <button class="btn sm ghost" data-act="seeEntry" data-id="${d.id}">Écriture</button>`;
+}
+function paper(d){
+  const t = totals(d.lines), c = S.clients.find(x => x.code === d.client) || {};
+  return `<div class="paper">
+    <div class="ph"><div><b style="font-family:var(--display);font-size:1.1rem">Café Nova SAS</b><div class="small muted">12 quai Rambaud, 69002 Lyon<br>SIREN 912 345 678 (fictif) · TVA FR00912345678</div></div>
+    <div style="text-align:right"><span class="pill p-${d.type}">${LABEL[d.type]}</span><div class="num" style="margin-top:4px">${d.id}</div><div class="small muted">du ${dfr(d.date)}</div>${d.from ? `<div class="small muted">issu de ${d.from}</div>` : ""}</div></div>
+    <div style="margin-bottom:12px"><span class="eyebrow">Client</span><div><b>${esc(c.name)}</b> · ${esc(c.city)}</div></div>
+    <div class="tablewrap"><table><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">TVA</th><th class="r">HT</th></tr></thead><tbody>
+      ${t.L.map(l => `<tr><td>${esc(l.label)}</td><td class="r num">${l.qty}</td><td class="r">${money(l.price)}</td><td class="r num">${rateLabel(l.rate)}</td><td class="r">${money(l.ht)}</td></tr>`).join("")}
+      ${Object.entries(t.byRate).map(([r,v]) => `<tr><td colspan="4" class="r small muted">TVA ${rateLabel(r)} sur ${fmt(v.base)}</td><td class="r">${money(v.tva)}</td></tr>`).join("")}
+      <tr class="tot"><td colspan="4" class="r">Total TTC</td><td class="r">${money(t.ttc)}</td></tr>
+    </tbody></table></div>
+    ${d.type === "facture" ? `<div class="legal">Échéance : ${dfr(d.due)} (30 jours). Pénalités de retard : 3 fois le taux d'intérêt légal. Indemnité forfaitaire pour frais de recouvrement : 40 €. Pas d'escompte pour paiement anticipé. Format électronique : Factur-X.</div>` : ""}
+  </div>`;
+}
+
+V.achats = () => {
+  const ht = Number(draftA.ht) || 0, tva = r2(ht * draftA.rate / 100), ttc = r2(ht + tva);
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Gestion commerciale</span><h1>Achats</h1></div></div>
+  <div class="grid2" style="align-items:start">
+  <form class="card stack" data-form="achat">
+    <h3>Saisir une facture fournisseur</h3>
+    <label class="f">Fournisseur<select class="i" id="a-four" data-a="fournisseur" required><option value="">Choisir…</option>${tiersOpts(S.fournisseurs, draftA.fournisseur)}</select></label>
+    <label class="f">Libellé<input class="i" id="a-lib" data-a="libelle" required placeholder="ex. Café vert Colombie (50 kg)" value="${esc(draftA.libelle)}"></label>
+    <div class="formgrid">
+      <label class="f">Compte de charge<select class="i" id="a-cpt" data-a="compte">${CHARGE_ACCOUNTS.map(c => `<option value="${c}" ${c === draftA.compte ? "selected" : ""}>${c} · ${PCG[c]}</option>`).join("")}</select></label>
+      <label class="f">Montant HT (€)<input class="i num" id="a-ht" data-a="ht" type="number" min="0.01" step="0.01" required value="${esc(draftA.ht)}" placeholder="350"></label>
+      <label class="f">Taux de TVA<select class="i" id="a-rate" data-a="rate">${[20,10,5.5,0].map(r => `<option value="${r}" ${Number(draftA.rate) === r ? "selected" : ""}>${rateLabel(r)}</option>`).join("")}</select></label>
+      <label class="f">Date<input class="i" id="a-date" data-a="date" type="date" value="${draftA.date}"></label>
+    </div>
+    <button class="btn primary" type="submit">Enregistrer la facture</button>
+  </form>
+  <div class="stack"><h3>Écriture qui sera générée</h3>
+    <div class="tablewrap" id="a-prev">${entryPreview([{compte:draftA.compte, debit:ht, credit:0},{compte:"445660", debit:tva, credit:0},{compte:"401000", tiers:draftA.fournisseur, debit:0, credit:ttc}])}</div>
+    ${note("Règle d'or", "Pour chaque écriture, <b>total débit = total crédit</b>. La charge et la TVA déductible vont au débit, la dette envers le fournisseur au crédit.")}
+  </div></div>
+  <h3>Factures fournisseurs</h3>
+  <div class="tablewrap"><table><thead><tr><th>N°</th><th>Fournisseur</th><th>Libellé</th><th>Compte</th><th class="r">TTC</th><th>Statut</th></tr></thead><tbody>
+  ${[...S.achats].reverse().map(a => `<tr class="${a.user ? "new" : ""}"><td class="num">${a.id}</td><td>${esc(tiersName(a.fournisseur))}<div class="small muted">${dfr(a.date)}</div></td><td>${esc(a.libelle)}</td><td class="num">${a.compte}</td><td class="r">${money(a.ttc)}</td><td>${a.paid ? `<span class="pill p-ok">Payée</span>` : `<span class="pill p-warn">À payer</span>`}</td></tr>`).join("")}
+  </tbody></table></div>`;
+};
+function entryPreview(lignes){
+  const D = r2(lignes.reduce((s,l) => s + l.debit, 0)), C = r2(lignes.reduce((s,l) => s + l.credit, 0));
+  return `<table><thead><tr><th>Compte</th><th>Intitulé</th><th class="r">Débit</th><th class="r">Crédit</th></tr></thead><tbody>
+    ${lignes.map(l => `<tr><td class="num">${l.compte}${l.tiers ? `<div class="small muted">${l.tiers}</div>` : ""}</td><td>${PCG[l.compte]}</td><td class="r">${l.debit ? money(l.debit) : ""}</td><td class="r">${l.credit ? money(l.credit) : ""}</td></tr>`).join("")}
+    <tr class="tot"><td colspan="2">Total ${D === C ? `<span class="pill p-ok">équilibré</span>` : ""}</td><td class="r">${money(D)}</td><td class="r">${money(C)}</td></tr></tbody></table>`;
+}
+
+V.efacture = () => {
+  const fs = [...factures()].reverse();
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Finance · Réforme 2026</span><h1>Facture électronique</h1></div></div>
+  ${note("Ce qui change", "Depuis le <b>1er septembre 2026</b>, toutes les entreprises établies en France doivent pouvoir <b>recevoir</b> des factures électroniques structurées (Factur-X, UBL ou CII) via une <b>plateforme agréée</b> (PA) immatriculée par l'administration fiscale. Les grandes entreprises et ETI doivent aussi les <b>émettre</b> dès 2026, les PME et micro-entreprises à partir de septembre 2027. Sage dispose de sa propre plateforme agréée, intégrée à ses logiciels.")}
+  <div class="chain">${["Logiciel de gestion","Plateforme agréée de l'émetteur","Plateforme agréée du client","Logiciel du client"].map((s,i) => `${i ? '<span class="arrow">→</span>' : ""}<span class="step ${i === 1 ? "hl" : ""}">${s}</span>`).join("")}<span class="arrow">+</span><span class="step">Données transmises à l'administration fiscale</span></div>
+  <div class="tablewrap"><table><thead><tr><th>Facture</th><th>Client</th><th class="r">TTC</th><th>Cycle de vie</th><th></th></tr></thead><tbody>
+  ${fs.map(f => `<tr class="${f.user ? "new" : ""}"><td class="num">${f.id}<div class="small muted">${dfr(f.date)}</div></td><td>${esc(tiersName(f.client))}</td><td class="r">${money(totals(f.lines).ttc)}</td>
+    <td>${f.ei ? `<div class="ei-steps">${EI_STEPS.map((s,i) => `<span class="${i <= f.ei.step ? "on" : ""}">${s}</span>`).join("")}</div>` : `<span class="small muted">${f.paid ? "Envoyée par e-mail en PDF (avant la réforme)" : "Pas encore transmise"}</span>`}</td>
+    <td>${!f.ei && !f.paid ? `<button class="btn sm primary" data-act="sendEI" data-id="${f.id}">Déposer sur la PA</button>` : ""}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="grid2">
+    ${note("Statuts", "Le statut <b>Encaissée</b> est passé automatiquement quand vous enregistrez le règlement dans le module Banque. Déposée, Rejetée, Refusée et Encaissée sont les statuts obligatoires du cycle de vie ; les autres sont facultatifs.")}
+    ${note("Factur-X", "Un PDF lisible par un humain qui contient en plus un fichier XML lisible par une machine. Le logiciel du client peut l'intégrer sans ressaisie.", "coffee")}
+  </div>`;
+};
+
+V.banque = () => {
+  const E = etats();
+  const unpaidF = factures().filter(f => !f.paid), unpaidA = S.achats.filter(a => !a.paid);
+  const mvts = S.entries.filter(e => e.lignes.some(l => l.compte === "512000")).sort((a,b) => a.date.localeCompare(b.date));
+  let run = 0;
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Finance</span><h1>Banque</h1></div><div class="kpi"><span class="eyebrow">Solde compte 512</span><div class="v">${fmt(E.banque)}</div></div></div>
+  <div class="grid2" style="align-items:start">
+    <div class="stack"><h3>Clients à encaisser</h3><div class="tablewrap"><table><thead><tr><th>Facture</th><th>Client</th><th class="r">TTC</th><th></th></tr></thead><tbody>
+      ${unpaidF.length ? unpaidF.map(f => `<tr class="${f.user ? "new" : ""}"><td class="num">${f.id}<div class="small ${f.due < today() ? "" : "muted"}" style="${f.due < today() ? "color:var(--bad)" : ""}">échéance ${dfr(f.due)}</div></td><td>${esc(tiersName(f.client))}</td><td class="r">${money(totals(f.lines).ttc)}</td><td><button class="btn sm primary" data-act="encaisser" data-id="${f.id}">Encaisser</button></td></tr>`).join("") : `<tr><td colspan="4" class="muted small">Tout est encaissé.</td></tr>`}
+    </tbody></table></div></div>
+    <div class="stack"><h3>Fournisseurs à payer</h3><div class="tablewrap"><table><thead><tr><th>Facture</th><th>Fournisseur</th><th class="r">TTC</th><th></th></tr></thead><tbody>
+      ${unpaidA.length ? unpaidA.map(a => `<tr class="${a.user ? "new" : ""}"><td class="num">${a.id}</td><td>${esc(tiersName(a.fournisseur))}</td><td class="r">${money(a.ttc)}</td><td><button class="btn sm" data-act="payer" data-id="${a.id}">Payer</button></td></tr>`).join("") : `<tr><td colspan="4" class="muted small">Rien à payer.</td></tr>`}
+    </tbody></table></div></div>
+  </div>
+  ${note("Lettrage", "Quand vous encaissez, le logiciel passe l'écriture <span class='num'>512 Banque</span> au débit / <span class='num'>411 Client</span> au crédit, puis attribue la même lettre (A, B, C…) à la facture et au règlement. Une ligne lettrée est soldée : le client ne doit plus rien sur cette facture.")}
+  <h3>Mouvements bancaires</h3>
+  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Libellé</th><th class="r">Encaissement</th><th class="r">Décaissement</th><th class="r">Solde</th></tr></thead><tbody>
+  ${mvts.map(e => { const l = e.lignes.find(x => x.compte === "512000"); run = r2(run + l.debit - l.credit); return `<tr class="${e.user ? "new" : ""}"><td class="num">${dfr(e.date)}</td><td>${esc(e.libelle)}</td><td class="r">${l.debit ? money(l.debit) : ""}</td><td class="r">${l.credit ? money(l.credit) : ""}</td><td class="r">${money(run)}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
+};
+
+V.compta = () => {
+  if (userFacture()) S.flags.sawEntry = true;
+  const tab = ui.comptaTab;
+  const tabs = [["journaux","Journaux"],["gl","Grand livre"],["balance","Balance"],["pcg","Plan comptable"]];
+  let body = "";
+  if (tab === "journaux"){
+    let list = [...S.entries].sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    if (ui.journal !== "all") list = list.filter(e => e.journal === ui.journal);
+    if (ui.piece) list = list.filter(e => e.piece === ui.piece);
+    body = `<div class="row">
+      <label class="f" style="flex-direction:row;align-items:center;gap:8px">Journal<select class="i" id="c-journal" data-ui="journal" style="width:auto"><option value="all">Tous</option>${Object.entries(JOURNALS).map(([k,v]) => `<option value="${k}" ${ui.journal === k ? "selected" : ""}>${k} · ${v}</option>`).join("")}</select></label>
+      ${ui.piece ? `<span class="pill p-facture">Pièce ${ui.piece}</span><button class="btn sm ghost" data-act="clearPiece">Voir toutes les écritures</button>` : ""}</div>
+    <div class="tablewrap"><table><thead><tr><th>Compte</th><th>Intitulé</th><th>Tiers</th><th class="r">Débit</th><th class="r">Crédit</th><th>Let.</th></tr></thead><tbody>
+    ${list.map(e => `<tr class="entry-head"><td colspan="6"><span class="pill p-j">${e.journal}</span> <span class="num">${dfr(e.date)}</span> · pièce <span class="num">${e.piece}</span> · ${esc(e.libelle)} ${e.user ? '<span class="pill p-facture">créée par vous</span>' : ""}</td></tr>
+      ${e.lignes.map(l => `<tr class="${e.user ? "new" : ""}"><td class="num indent">${l.compte}</td><td>${PCG[l.compte]}</td><td class="small">${l.tiers ? esc(tiersName(l.tiers)) : ""}</td><td class="r">${l.debit ? money(l.debit) : ""}</td><td class="r">${l.credit ? money(l.credit) : ""}</td><td class="lett">${l.lettrage || ""}</td></tr>`).join("")}`).join("")}
+    </tbody></table></div>`;
+  } else if (tab === "gl"){
+    const comptes = Object.keys(soldes()).sort();
+    const lines = [];
+    [...S.entries].sort((a,b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)).forEach(e => e.lignes.forEach(l => { if (l.compte === ui.compte) lines.push({e,l}); }));
+    let run = 0;
+    body = `<label class="f" style="max-width:420px">Compte<select class="i" id="c-compte" data-ui="compte">${comptes.map(c => `<option value="${c}" ${c === ui.compte ? "selected" : ""}>${c} · ${PCG[c]}</option>`).join("")}</select></label>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Jnl</th><th>Pièce</th><th>Libellé</th><th class="r">Débit</th><th class="r">Crédit</th><th class="r">Solde</th><th>Let.</th></tr></thead><tbody>
+    ${lines.map(({e,l}) => { run = r2(run + l.debit - l.credit); return `<tr class="${e.user ? "new" : ""}"><td class="num">${dfr(e.date)}</td><td><span class="pill p-j">${e.journal}</span></td><td class="num">${e.piece}</td><td>${esc(e.libelle)}</td><td class="r">${l.debit ? money(l.debit) : ""}</td><td class="r">${l.credit ? money(l.credit) : ""}</td><td class="r">${money(Math.abs(run))} <span class="small muted">${run >= 0 ? "D" : "C"}</span></td><td class="lett">${l.lettrage || ""}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
+  } else if (tab === "balance"){
+    const acc = soldes(); let TD = 0, TC = 0;
+    const rows = Object.keys(acc).sort().map(c => { const a = acc[c]; TD = r2(TD + a.debit); TC = r2(TC + a.credit); const s = r2(a.debit - a.credit);
+      return `<tr><td class="num">${c}</td><td>${PCG[c]}</td><td class="r">${money(a.debit)}</td><td class="r">${money(a.credit)}</td><td class="r">${s > 0 ? money(s) : ""}</td><td class="r">${s < 0 ? money(-s) : ""}</td></tr>`; }).join("");
+    body = `<div class="row">${TD === TC ? `<span class="pill p-ok">Balance équilibrée : total débit = total crédit = ${fmt(TD)}</span>` : `<span class="pill p-bad">Déséquilibre</span>`}</div>
+    <div class="tablewrap"><table><thead><tr><th>Compte</th><th>Intitulé</th><th class="r">Total débit</th><th class="r">Total crédit</th><th class="r">Solde débiteur</th><th class="r">Solde créditeur</th></tr></thead><tbody>${rows}
+    <tr class="tot"><td colspan="2">Totaux</td><td class="r">${money(TD)}</td><td class="r">${money(TC)}</td><td colspan="2"></td></tr></tbody></table></div>`;
+  } else {
+    const classes = {"1":"Capitaux","4":"Tiers","5":"Financier","6":"Charges","7":"Produits"};
+    body = `<div class="tablewrap"><table><thead><tr><th>Classe</th><th>Compte</th><th>Intitulé</th></tr></thead><tbody>
+    ${Object.keys(PCG).sort().map(c => `<tr><td>${c[0]} · ${classes[c[0]]}</td><td class="num">${c}</td><td>${PCG[c]}</td></tr>`).join("")}</tbody></table></div>
+    ${note("PCG", "En France, tous les logiciels comptables suivent le <b>Plan comptable général</b>. Classe 6 = charges, classe 7 = produits : leur différence donne le résultat. Les classes 1 à 5 forment le bilan.")}`;
+  }
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Finance</span><h1>Comptabilité</h1></div></div>
+  <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<button class="tab" role="tab" aria-selected="${tab === k}" data-act="ctab" data-k="${k}">${l}</button>`).join("")}</div>
+  ${body}
+  ${tab === "journaux" ? note("À retenir", "Vous n'avez jamais saisi d'écriture de vente : le module commercial l'a générée en validant la facture. VT = ventes, AC = achats, BQ = banque.") : ""}`;
+};
+
+V.etats = () => {
+  S.flags.sawTVA = S.flags.sawTVA || ui.etatsTab === "tva";
+  const E = etats(), tab = ui.etatsTab;
+  const tabs = [["resultat","Compte de résultat"],["bilan","Bilan"],["tva","Déclaration de TVA"]];
+  let body = "";
+  if (tab === "resultat"){
+    body = `<div class="grid2"><div class="tablewrap"><table><thead><tr><th>Produits</th><th class="r">Montant</th></tr></thead><tbody>
+      ${E.produits.map(x => `<tr><td><span class="num">${x.c}</span> ${PCG[x.c]}</td><td class="r">${money(x.v)}</td></tr>`).join("")}<tr class="tot"><td>Total produits</td><td class="r">${money(E.P)}</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Charges</th><th class="r">Montant</th></tr></thead><tbody>
+      ${E.charges.map(x => `<tr><td><span class="num">${x.c}</span> ${PCG[x.c]}</td><td class="r">${money(x.v)}</td></tr>`).join("")}<tr class="tot"><td>Total charges</td><td class="r">${money(E.C)}</td></tr></tbody></table></div></div>
+      <div class="kpi"><span class="eyebrow">Résultat de la période</span><div class="v" style="color:${E.res >= 0 ? "var(--ok)" : "var(--bad)"}">${fmt(E.res)} ${E.res >= 0 ? "(bénéfice)" : "(perte)"}</div></div>`;
+  } else if (tab === "bilan"){
+    const tvaA = E.tvaNet < 0 ? -E.tvaNet : 0, tvaP = E.tvaNet > 0 ? E.tvaNet : 0;
+    const actif = [["Créances clients (411)", E.clients],["Créance de TVA", tvaA],["Banque (512)", E.banque]].filter(x => x[1]);
+    const passif = [["Capital social (101)", E.capital],["Résultat de la période", E.res],["Dettes fournisseurs (401)", E.fournisseurs],["Dette de TVA (4457 − 4456)", tvaP]].filter(x => x[1]);
+    const TA = r2(actif.reduce((s,x) => s + x[1], 0)), TP = r2(passif.reduce((s,x) => s + x[1], 0));
+    const tbl = (t, rows, T) => `<div class="tablewrap"><table><thead><tr><th>${t}</th><th class="r">Montant</th></tr></thead><tbody>${rows.map(([l,v]) => `<tr><td>${l}</td><td class="r">${money(v)}</td></tr>`).join("")}<tr class="tot"><td>Total</td><td class="r">${money(T)}</td></tr></tbody></table></div>`;
+    body = `<div class="grid2">${tbl("Actif (ce que l'entreprise possède)", actif, TA)}${tbl("Passif (comment c'est financé)", passif, TP)}</div>
+      <div class="row">${TA === TP ? `<span class="pill p-ok">Actif = Passif</span>` : `<span class="pill p-bad">Écart ${fmt(TA - TP)}</span>`}<span class="small muted">Bilan simplifié, sans stocks ni immobilisations.</span></div>`;
+  } else {
+    const col = {}, ded = {};
+    factures().forEach(f => Object.entries(totals(f.lines).byRate).forEach(([r,v]) => { col[r] = col[r] || {base:0,tva:0}; col[r].base = r2(col[r].base + v.base); col[r].tva = r2(col[r].tva + v.tva); }));
+    S.achats.forEach(a => { ded[a.rate] = r2((ded[a.rate] || 0) + a.tva); });
+    body = `<div class="grid2" style="align-items:start"><div class="tablewrap"><table><thead><tr><th>TVA collectée (ventes)</th><th class="r">Base HT</th><th class="r">TVA</th></tr></thead><tbody>
+      ${Object.entries(col).sort((a,b) => b[0] - a[0]).map(([r,v]) => `<tr><td>Taux ${rateLabel(r)}</td><td class="r">${money(v.base)}</td><td class="r">${money(v.tva)}</td></tr>`).join("")}
+      <tr class="tot"><td colspan="2">Total collectée (445710)</td><td class="r">${money(E.tvaCol)}</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>TVA déductible (achats)</th><th class="r">TVA</th></tr></thead><tbody>
+      ${Object.entries(ded).sort((a,b) => b[0] - a[0]).map(([r,v]) => `<tr><td>Taux ${rateLabel(r)}</td><td class="r">${money(v)}</td></tr>`).join("")}
+      <tr class="tot"><td>Total déductible (445660)</td><td class="r">${money(E.tvaDed)}</td></tr></tbody></table></div></div>
+      <div class="kpi"><span class="eyebrow">${E.tvaNet >= 0 ? "TVA nette à reverser à l'État" : "Crédit de TVA"}</span><div class="v">${fmt(Math.abs(E.tvaNet))}</div><span class="s">TVA collectée − TVA déductible · déclaration CA3, régime réel normal (simplifié)</span></div>
+      ${note("Dans Sage", "La déclaration est préparée à partir des écritures, contrôlée, puis télétransmise à l'administration. L'entreprise ne recalcule rien à la main.")}`;
+  }
+  return `${banner()}
+  <div class="head"><div><span class="eyebrow">Finance</span><h1>États & TVA</h1></div></div>
+  <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<button class="tab" role="tab" aria-selected="${tab === k}" data-act="etab" data-k="${k}">${l}</button>`).join("")}</div>
+  ${body}`;
+};
+
+/* ---------- assistant IA simulé ---------- */
+const SUGG = ["Quels clients ne m'ont pas encore payé ?","Rédige une relance pour la facture la plus en retard","Combien de TVA vais-je devoir payer ?","Quel est mon chiffre d'affaires ?","Qui est mon meilleur client ?","Quelle sera ma trésorerie après encaissements et paiements ?","Explique-moi l'écriture de ma dernière facture"];
+function answer(q){
+  const s = q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const E = etats();
+  const unpaid = factures().filter(f => !f.paid).sort((a,b) => a.due.localeCompare(b.due));
+  if (/relanc|mail|courrier|ecri/.test(s) && !/ecriture/.test(s)){
+    const f = unpaid[0];
+    if (!f) return "Toutes les factures sont encaissées : aucune relance à préparer.";
+    const late = daysBetween(f.due, today());
+    return `Voici un brouillon pour <b>${esc(tiersName(f.client))}</b> (facture ${f.id}) :<pre>Objet : Facture ${f.id} – ${late > 0 ? "échéance dépassée" : "rappel d'échéance"}
+
+Bonjour,
+
+Sauf erreur de notre part, la facture ${f.id} du ${dfr(f.date)}, d'un montant de ${fmt(totals(f.lines).ttc)} TTC, ${late > 0 ? `est échue depuis le ${dfr(f.due)} (${late} jours)` : `arrive à échéance le ${dfr(f.due)}`}.
+
+Pourriez-vous nous indiquer la date de règlement prévue ? Si le paiement a déjà été effectué, merci de ne pas tenir compte de ce message.
+
+Bien cordialement,
+Le service comptable – Café Nova SAS</pre><span class="small muted">L'assistant propose, l'humain valide avant l'envoi.</span>`;
+  }
+  if (/impay|pas encore paye|doit|retard|encaiss/.test(s) && !/tresor/.test(s)){
+    if (!unpaid.length) return "Toutes vos factures clients sont encaissées.";
+    return `${unpaid.length} facture(s) restent à encaisser, pour <b>${fmt(E.clients)}</b> au total :<ul>${unpaid.map(f => { const late = daysBetween(f.due, today()); return `<li>${f.id} · ${esc(tiersName(f.client))} · ${fmt(totals(f.lines).ttc)} · ${late > 0 ? `<b style="color:var(--bad)">en retard de ${late} j</b>` : `échéance le ${dfr(f.due)}`}</li>`; }).join("")}</ul>Je peux rédiger une relance si vous voulez.`;
+  }
+  if (/tva/.test(s)) return `TVA collectée sur vos ventes : <b>${fmt(E.tvaCol)}</b>. TVA déductible sur vos achats : <b>${fmt(E.tvaDed)}</b>. ${E.tvaNet >= 0 ? `Vous devrez donc reverser <b>${fmt(E.tvaNet)}</b> à l'État.` : `Vous avez un crédit de TVA de <b>${fmt(-E.tvaNet)}</b>.`} Le détail par taux est dans « États & TVA ».`;
+  if (/tresor|banque|cash|solde/.test(s)){
+    const ap = r2(S.achats.filter(a => !a.paid).reduce((x,a) => x + a.ttc, 0));
+    return `Solde bancaire actuel : <b>${fmt(E.banque)}</b>. Si tous les clients paient (${fmt(E.clients)}) et que vous réglez vos fournisseurs (${fmt(ap)}), la trésorerie passera à <b>${fmt(E.banque + E.clients - ap)}</b>, avant paiement de la TVA (${fmt(Math.max(0,E.tvaNet))}).`;
+  }
+  if (/meilleur|top|plus gros|principal/.test(s)){
+    const by = {}; factures().forEach(f => by[f.client] = r2((by[f.client] || 0) + totals(f.lines).ht));
+    const top = Object.entries(by).sort((a,b) => b[1] - a[1]);
+    return `Votre premier client est <b>${esc(tiersName(top[0][0]))}</b> avec ${fmt(top[0][1])} HT, soit ${Math.round(top[0][1] / E.P * 100)} % du chiffre d'affaires.<ul>${top.map(([c,v]) => `<li>${esc(tiersName(c))} : ${fmt(v)}</li>`).join("")}</ul>`;
+  }
+  if (/chiffre|\bca\b|vente|vendu/.test(s)){
+    const svc = -balanceOf("706000"), mdse = -balanceOf("707000");
+    return `Chiffre d'affaires HT depuis le début de l'exercice : <b>${fmt(E.P)}</b>, dont ${fmt(mdse)} de ventes de café (707) et ${fmt(svc)} de services (706). Résultat provisoire : <b>${fmt(E.res)}</b>.`;
+  }
+  if (/ecriture|explique|debit|credit/.test(s)){
+    const f = [...factures()].pop(); const t = totals(f.lines);
+    return `Pour la facture <b>${f.id}</b> (${esc(tiersName(f.client))}), le logiciel a passé dans le journal des ventes :<ul><li><b>Débit 411</b> Clients : ${fmt(t.ttc)}. Le client nous doit le montant TTC.</li>${Object.entries(t.byCompte).map(([c,v]) => `<li><b>Crédit ${c.slice(0,3)}</b> ${PCG[c]} : ${fmt(v)}. C'est notre produit, hors taxe.</li>`).join("")}<li><b>Crédit 44571</b> TVA collectée : ${fmt(t.tva)}. Nous la reverserons à l'État.</li></ul>Débit = crédit = ${fmt(t.ttc)}.`;
+  }
+  return `Je suis un assistant simulé : je réponds à partir des données du dossier. Essayez par exemple : « Quels clients ne m'ont pas payé ? », « Combien de TVA vais-je payer ? » ou « Quelle sera ma trésorerie ? ».`;
+}
+V.ia = () => `${banner()}
+  <div class="head"><div><span class="eyebrow">Pilotage & IA</span><h1>Assistant IA</h1></div><span class="pill p-devis">Simulation : réponses calculées sur les données du dossier</span></div>
+  <div class="grid2" style="align-items:start">
+    <div class="card stack">
+      <div class="chat" id="chat">${S.chat.length ? S.chat.map(m => `<div class="msg ${m.who}">${m.html}</div>`).join("") : `<div class="msg b">Bonjour ! Posez-moi une question sur Café Nova : impayés, TVA, chiffre d'affaires, trésorerie…</div>`}</div>
+      <form class="row" data-form="ia"><input class="i" id="ia-q" placeholder="Votre question…" style="flex:1;min-width:180px" autocomplete="off"><button class="btn primary" type="submit">Envoyer</button></form>
+      <div class="chips">${SUGG.map(q => `<button class="chip" data-act="ask" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+    </div>
+    <div class="stack">
+      ${note("Comment ça marche", "L'assistant ne devine rien : il interroge les tables du logiciel (factures, écritures, échéances) puis met la réponse en phrases. Sans données propres et centralisées, pas d'IA utile.")}
+      ${note("Dans Sage", "Sage Copilot, l'assistant d'IA générative de Sage, est disponible dans plusieurs de ses logiciels. En 2026, Sage déploie des <b>agents IA</b> qui préparent des relances, des rapprochements ou des déclarations, l'humain gardant la validation finale.", "coffee")}
+      ${note("Esprit critique", "Une IA peut se tromper. En comptabilité, la responsabilité reste humaine : on vérifie avant d'envoyer ou de déclarer.")}
+    </div>
+  </div>`;
+
+/* ---------- quiz ---------- */
+const QUIZ = [
+  ["Sage est avant tout…", ["Un réseau social professionnel","Un éditeur d'ERP et de logiciels de gestion","Une banque en ligne","Un cabinet d'expertise comptable"], 1, "Sage, fondé le 27 avril 1981 à Newcastle par David Goldman, Paul Muller et Graham Wylie, édite des ERP (Sage 100, Sage X3…) et des logiciels de comptabilité et de paie."],
+  ["Dans la chaîne des ventes, quel document précède directement la facture ?", ["Le devis","Le bon de commande","Le bon de livraison","L'avoir"], 2, "Devis → bon de commande → bon de livraison → facture."],
+  ["Facture de 100 € HT avec 20 % de TVA : quel compte est débité ?", ["707 Ventes pour 100 €","411 Clients pour 120 €","512 Banque pour 120 €","44571 TVA pour 20 €"], 1, "Le client nous doit le TTC : débit 411 de 120 €. Crédit 707 (100 €) et crédit 44571 (20 €)."],
+  ["À quoi sert le lettrage ?", ["À rédiger les courriers aux clients","À relier une facture et son règlement","À traduire les factures","À classer les fournisseurs par ordre alphabétique"], 1, "Une même lettre sur la facture et le paiement indique que la dette est soldée."],
+  ["Quelle offre Sage vise les ETI et les groupes industriels ?", ["Sage Active","Sage 50","Sage X3","Sage Paie"], 2, "Sage X3 est l'ERP haut de gamme de Sage : finance, achats, stocks, production, multi-sites. Il vient d'Adonix, un éditeur parisien racheté en 2005."],
+  ["Depuis le 1er septembre 2026, toutes les entreprises en France doivent…", ["Arrêter d'utiliser Excel","Pouvoir recevoir des factures électroniques","Utiliser obligatoirement Sage","Payer leurs factures en cryptomonnaie"], 1, "Réception obligatoire pour tous en 2026. Émission obligatoire pour les grandes entreprises et ETI en 2026, PME et micro-entreprises en 2027."],
+  ["Une balance comptable est équilibrée quand…", ["Le résultat est positif","La banque est créditrice","Total des débits = total des crédits","Tous les clients ont payé"], 2, "C'est le principe de la partie double : chaque écriture est équilibrée, donc la balance aussi."],
+  ["Le principal intérêt d'un logiciel de gestion intégré (ERP) ?", ["Il remplace le comptable","Une seule base : on saisit une fois, tous les services en profitent","Il est toujours gratuit","Il fonctionne sans Internet"], 1, "La facture du commercial devient l'écriture du comptable et le chiffre du tableau de bord, sans ressaisie."],
+  ["Aujourd'hui, l'essentiel du chiffre d'affaires de Sage provient…", ["De la vente de licences en boîte","D'abonnements récurrents","De la publicité","Du conseil"], 1, "Environ 97 % du chiffre d'affaires 2025 de Sage est récurrent, principalement des abonnements."],
+  ["Que fait un assistant IA comme Sage Copilot ?", ["Il signe les comptes annuels à la place de l'expert-comptable","Il exploite les données du logiciel pour répondre et automatiser des tâches, sous contrôle humain","Il invente des factures","Il remplace la base de données"], 1, "L'IA s'appuie sur des données fiables et centralisées ; la validation reste humaine."]
+];
+V.quiz = () => {
+  const ans = S.quiz || {}; const n = Object.keys(ans).length;
+  const score = Object.entries(ans).filter(([i,a]) => QUIZ[i][2] === a).length;
+  return `<div class="head"><div><span class="eyebrow">Apprendre</span><h1>Quiz : avez-vous compris l'ERP Sage ?</h1></div>
+    <div class="row"><span class="pill ${n === QUIZ.length ? "p-ok" : "p-j"}">Score ${score}/${QUIZ.length}${n < QUIZ.length ? ` · ${n} répondue(s)` : ""}</span>${n ? `<button class="btn sm ghost" data-act="quizReset">Recommencer</button>` : ""}</div></div>
+  <div class="stack">${QUIZ.map(([q,opts,good,ex],i) => { const a = ans[i]; const done = a !== undefined;
+    return `<div class="q"><h3>${i + 1}. ${q}</h3><div class="opts">${opts.map((o,j) => `<button class="opt ${done && j === good ? "good" : ""} ${done && j === a && a !== good ? "badc" : ""}" ${done ? "disabled" : ""} data-act="quiz" data-i="${i}" data-j="${j}">${o}</button>`).join("")}</div>${done ? `<p class="expl">${a === good ? "Exact. " : "Pas tout à fait. "}${ex}</p>` : ""}</div>`; }).join("")}</div>`;
+};
+
+/* ---------- fiche mémo ---------- */
+V.memo = () => `<div class="head"><div><span class="eyebrow">À garder</span><h1>Fiche mémo</h1></div></div>
+  <div class="card stack"><h3>Le parcours d'une vente dans un logiciel de gestion</h3>
+    <div class="chain">${["Fiche client","Devis","Bon de commande","Bon de livraison","Facture","Écriture VT automatique","Envoi via plateforme agréée","Règlement + lettrage","Déclaration de TVA","Bilan & tableau de bord"].map((s,i) => `${i ? '<span class="arrow">→</span>' : ""}<span class="step">${s}</span>`).join("")}</div></div>
+  <div class="grid2">
+    <div class="stack"><h3>Les comptes à connaître</h3><div class="tablewrap"><table><tbody>
+      ${[["101","Capital","apport des associés"],["401","Fournisseurs","ce qu'on doit"],["411","Clients","ce qu'on nous doit"],["44566","TVA déductible","TVA payée sur nos achats"],["44571","TVA collectée","TVA facturée à nos clients"],["512","Banque","l'argent sur le compte"],["6…","Charges","achats, loyer, salaires"],["7…","Produits","ventes, prestations"]].map(([c,l,d]) => `<tr><td class="num"><b>${c}</b></td><td>${l}</td><td class="muted small">${d}</td></tr>`).join("")}
+    </tbody></table></div></div>
+    <div class="stack"><h3>La gamme Sage en France</h3><div class="tablewrap"><table><tbody>
+      ${[["Sage Active","TPE, cloud","gestion : compta, factures, trésorerie"],["Sage 50","TPE / petites PME","compta et gestion commerciale"],["Sage 100","PME","ERP modulaire : compta, gestion commerciale, trésorerie, paie"],["Sage Intacct","PME et ETI, cloud","finance et pilotage multi-entités"],["Sage Operations","PMI et ETI, cloud","ERP industrie et négoce"],["Sage X3","ETI et groupes","ERP complet, production, multi-sites"],["Sage Paie & RH","toutes tailles","bulletins, DSN, RH"]].map(([p,c,d]) => `<tr><td><b>${p}</b></td><td class="small">${c}</td><td class="muted small">${d}</td></tr>`).join("")}
+    </tbody></table></div></div>
+  </div>
+  <div class="gloss">
+    ${[["ERP","Progiciel de gestion intégré : une base de données unique pour la finance, les ventes, les achats, les stocks, la RH."],["Partie double","Chaque opération s'écrit au débit d'un compte et au crédit d'un autre, pour le même montant."],["Journal","Registre chronologique des écritures, par type : ventes (VT), achats (AC), banque (BQ)."],["Grand livre","Toutes les écritures regroupées compte par compte."],["Balance","Liste des comptes avec leurs totaux. Total débit = total crédit."],["Lettrage","Rapprochement d'une facture et de son règlement par une même lettre."],["Plateforme agréée (PA)","Opérateur immatriculé par l'administration qui transmet les factures électroniques et les données fiscales."],["Factur-X","Facture PDF qui embarque un fichier XML lisible par les logiciels."],["SaaS / cloud","Logiciel utilisé par abonnement, en ligne, toujours à jour, sans installation."],["Sage Copilot","Assistant d'IA générative intégré aux logiciels Sage, complété en 2026 par des agents IA."]].map(([t,d]) => `<div><b>${t}</b><span class="small muted">${d}</span></div>`).join("")}
+  </div>
+  <div class="card stack"><h3>Pour aller plus loin</h3>
+    <ul class="small" style="margin:0;padding-left:18px;display:grid;gap:4px">
+      <li><a href="https://www.sage.com/fr-fr/comptabilite-logiciels/version-test-gratuit/" target="_blank" rel="noopener">Essayer gratuitement un logiciel Sage (version test)</a></li>
+      <li><a href="https://www.sage.com/fr-fr/produits/sage-100cloud/essayer/" target="_blank" rel="noopener">Essai de Sage 100 avec une base de données fictive</a></li>
+      <li><a href="https://www.sage.com/fr-fr/actualites/communiques-presse/2026/07/facture-electronique-sage-acces-pa/" target="_blank" rel="noopener">Sage et la facture électronique (communiqué juillet 2026)</a></li>
+      <li><a href="https://www.sage.com/investors/investor-downloads/press-releases/2025/11/full-year-2025-results-19-november-2025/" target="_blank" rel="noopener">Résultats annuels 2025 du groupe Sage</a></li>
+    </ul></div>`;
+
+/* ---------- rendu & événements ---------- */
+function render(){
+  const v = VIEWS.includes(ui.view) ? ui.view : "accueil";
+  ui.view = v;
+  document.getElementById("main").innerHTML = V[v]();
+  renderNav();
+  const chat = document.getElementById("chat"); if (chat) chat.scrollTop = chat.scrollHeight;
+  save();
+}
+function go(v){
+  ui.view = v; ui.piece = null;
+  if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
+  render(); window.scrollTo({top:0});
+}
+let toastT;
+function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 3200); }
+function checkMissionToast(before){
+  const after = MISSIONS.filter(m => m.done()).length;
+  if (after > before) setTimeout(() => toast(after === MISSIONS.length ? "Les 8 missions sont terminées ! Passez au quiz." : `Mission ${after} réussie ✓`), 900);
+}
+function advanceEI(id){
+  const f = docById(id); if (!f || !f.ei || f.ei.step >= 3) return;
+  setTimeout(() => {
+    const g = docById(id); if (!g || !g.ei || g.ei.step >= 3) return;
+    g.ei.step++; g.ei.log.push({s:g.ei.step, d:today()});
+    if (ui.view === "efacture") render(); else save();
+    advanceEI(id);
+  }, 1400);
+}
+
+const ACT = {
+  go:d => go(d.v),
+  askReset:() => { ui.confirmReset = true; renderNav(); },
+  cancelReset:() => { ui.confirmReset = false; renderNav(); },
+  reset:() => { ui.confirmReset = false; seed(); draft = {client:"", lines:[{ref:"CAF-ESP",qty:10}]}; draftA = {fournisseur:"", libelle:"", compte:"607000", ht:"", rate:20, date:today()}; ui.selDoc = null; go("accueil"); toast("Dossier réinitialisé"); },
+  addLine:() => { draft.lines.push({ref:"FOR-BAR", qty:1}); render(); },
+  delLine:d => { draft.lines.splice(Number(d.i),1); render(); },
+  selDoc:d => { ui.selDoc = d.id; render(); },
+  transform:d => {
+    const before = MISSIONS.filter(m => m.done()).length;
+    const n = transform(d.id, today()); if (!n) return;
+    ui.selDoc = n.id; render();
+    toast(n.type === "facture" ? `Facture ${n.id} créée : écriture générée dans le journal des ventes` : `${LABEL[n.type]} ${n.id} créé à partir de ${d.id}`);
+    checkMissionToast(before);
+  },
+  seeEntry:d => { ui.view = "compta"; ui.comptaTab = "journaux"; ui.journal = "all"; history.replaceState(null,"","#compta"); const before = MISSIONS.filter(m => m.done()).length; ui.piece = d.id; render(); checkMissionToast(before); },
+  clearPiece:() => { ui.piece = null; render(); },
+  ctab:d => { ui.comptaTab = d.k; ui.piece = null; render(); },
+  etab:d => { const before = MISSIONS.filter(m => m.done()).length; ui.etatsTab = d.k; render(); checkMissionToast(before); },
+  encaisser:d => { const before = MISSIONS.filter(m => m.done()).length; encaisser(d.id, today(), true); render(); toast(`Règlement enregistré et lettré (lettre ${docById(d.id).lettrage})`); checkMissionToast(before); },
+  payer:d => { payer(d.id, today(), true); render(); toast("Paiement fournisseur enregistré et lettré"); },
+  sendEI:d => { const before = MISSIONS.filter(m => m.done()).length; const f = docById(d.id); f.ei = {step:0, log:[{s:0, d:today()}]}; render(); toast(`Facture ${f.id} déposée sur la plateforme agréée`); advanceEI(f.id); checkMissionToast(before); },
+  ask:d => askIA(d.q),
+  quiz:d => { S.quiz = S.quiz || {}; S.quiz[d.i] = Number(d.j); const y = window.scrollY; render(); window.scrollTo({top:y}); },
+  quizReset:() => { S.quiz = {}; render(); }
+};
+function askIA(q){
+  if (!q.trim()) return;
+  const before = MISSIONS.filter(m => m.done()).length;
+  S.chat.push({who:"u", html:esc(q)}, {who:"b", html:answer(q)});
+  S.chat = S.chat.slice(-30); S.flags.askedIA = true; render(); checkMissionToast(before);
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  if (b.tagName === "A") e.preventDefault();
+  const f = ACT[b.dataset.act]; if (f) f(b.dataset);
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.dc !== undefined){ draftC[t.dataset.dc] = t.value; return; }
+  if (t.dataset.d !== undefined){
+    const k = t.dataset.d;
+    if (k === "client") draft.client = t.value;
+    else { const i = Number(t.dataset.i); draft.lines[i][k] = k === "qty" ? t.value : t.value;
+      if (k === "ref"){ render(); return; }
+      const a = art(draft.lines[i].ref); const cell = document.getElementById("d-lht-" + i); if (cell) cell.innerHTML = money(r2(a.price * (Number(t.value) || 0)));
+    }
+    const tot = document.getElementById("d-tot"); if (tot) tot.innerHTML = draftTotalsHTML(totals(makeLinesSafe(draft.lines)));
+    return;
+  }
+  if (t.dataset.a !== undefined){
+    draftA[t.dataset.a] = t.value;
+    const ht = Number(draftA.ht) || 0, tva = r2(ht * Number(draftA.rate) / 100);
+    const p = document.getElementById("a-prev"); if (p) p.innerHTML = entryPreview([{compte:draftA.compte, debit:ht, credit:0},{compte:"445660", debit:tva, credit:0},{compte:"401000", tiers:draftA.fournisseur, debit:0, credit:r2(ht + tva)}]);
+    return;
+  }
+  if (t.dataset.ui !== undefined){ ui[t.dataset.ui] = t.value; render(); }
+});
+document.addEventListener("change", e => { const t = e.target; if (t.tagName === "SELECT" && t.dataset.d === "ref") return; });
+document.addEventListener("submit", e => {
+  const f = e.target.closest("[data-form]"); if (!f) return;
+  e.preventDefault();
+  const before = MISSIONS.filter(m => m.done()).length;
+  const kind = f.dataset.form;
+  if (kind === "tiers"){
+    if (!draftC.name.trim()) return;
+    const t = addTiers(draftC.kind, {name:draftC.name.trim(), city:draftC.city, email:draftC.email}, true);
+    if (draftC.kind === "client") draft.client = t.code; else draftA.fournisseur = t.code;
+    draftC = {kind:draftC.kind, name:"", city:"", email:""};
+    render(); toast(`Fiche créée : compte ${t.code}`);
+  } else if (kind === "devis"){
+    if (!draft.client){ toast("Choisissez d'abord un client"); return; }
+    const lines = draft.lines.filter(l => Number(l.qty) > 0).map(l => [l.ref, Number(l.qty)]);
+    if (!lines.length){ toast("Ajoutez au moins une ligne avec une quantité"); return; }
+    const d = createDevis(draft.client, makeLines(lines), today(), true);
+    ui.selDoc = d.id; draft.lines = [{ref:"CAF-ESP", qty:10}];
+    render(); toast(`Devis ${d.id} enregistré. Transformez-le maintenant en bon de commande.`);
+  } else if (kind === "achat"){
+    if (!draftA.fournisseur || !draftA.libelle.trim() || !(Number(draftA.ht) > 0)){ toast("Renseignez le fournisseur, le libellé et un montant HT"); return; }
+    const a = addAchat({...draftA, libelle:draftA.libelle.trim()}, true);
+    draftA = {fournisseur:draftA.fournisseur, libelle:"", compte:"607000", ht:"", rate:20, date:today()};
+    render(); toast(`Facture ${a.id} enregistrée dans le journal des achats`);
+  } else if (kind === "ia"){
+    const q = document.getElementById("ia-q").value; askIA(q); return;
+  }
+  checkMissionToast(before);
+});
+window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (VIEWS.includes(v) && v !== ui.view){ ui.view = v; ui.piece = null; render(); } });
+
+load();
+{ const h = location.hash.slice(1); if (VIEWS.includes(h)) ui.view = h; }
+factures().forEach(f => { if (f.ei && f.ei.step < 3 && !f.paid) advanceEI(f.id); });
+render();
+</script>
+
+</html>
