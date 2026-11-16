@@ -421,11 +421,9 @@ const MISSIONS = [
     why:"Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir des factures électroniques via une plateforme agréée.",
     done:() => S.docs.some(d => d.user && d.type === "facture" && d.ei)},
   {id:"reglement", t:"Encaisser le paiement et lettrer", view:"banque",
-    why:"Le lettrage relie la facture et son règlement : le client ne doit plus rien.",
-    done:() => S.docs.some(d => d.user && d.type === "facture" && d.paid)},
+    why:"Encaissez votre propre facture, celle qui est surlignée dans la liste. Le lettrage relie la facture et son règlement : le client ne doit plus rien.",    done:() => S.docs.some(d => d.user && d.type === "facture" && d.paid)},
   {id:"pilotage", t:"Piloter : TVA à payer et question à l'assistant IA", view:"ia",
-    why:"Les mêmes données servent à déclarer la TVA et à répondre aux questions du dirigeant.",
-    done:() => !!(S.flags.sawTVA && S.flags.askedIA)}
+    why:"Demandez à l'assistant combien de TVA vous devrez payer (ou ouvrez États & TVA, onglet TVA). Les mêmes données servent à déclarer la TVA et à répondre aux questions du dirigeant.",    done:() => !!(S.flags.sawTVA && S.flags.askedIA)}
 ];
 const currentMission = () => MISSIONS.find(m => !m.done());
 
@@ -889,8 +887,7 @@ function render(){
 }
 function go(v){
   ui.view = v; ui.piece = null;
-  if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
-  render(); window.scrollTo({top:0});
+  try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}  render(); window.scrollTo({top:0});
 }
 let toastT;
 function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 3200); }
@@ -923,12 +920,11 @@ const ACT = {
     toast(n.type === "facture" ? `Facture ${n.id} créée : écriture générée dans le journal des ventes` : `${LABEL[n.type]} ${n.id} créé à partir de ${d.id}`);
     checkMissionToast(before);
   },
-  seeEntry:d => { ui.view = "compta"; ui.comptaTab = "journaux"; ui.journal = "all"; history.replaceState(null,"","#compta"); const before = MISSIONS.filter(m => m.done()).length; ui.piece = d.id; render(); checkMissionToast(before); },
+  seeEntry:d => { ui.view = "compta"; ui.comptaTab = "journaux"; ui.journal = "all"; try { history.replaceState(null,"","#compta"); } catch (e) {} const before = MISSIONS.filter(m => m.done()).length; ui.piece = d.id; render(); checkMissionToast(before); },
   clearPiece:() => { ui.piece = null; render(); },
   ctab:d => { ui.comptaTab = d.k; ui.piece = null; render(); },
   etab:d => { const before = MISSIONS.filter(m => m.done()).length; ui.etatsTab = d.k; render(); checkMissionToast(before); },
-  encaisser:d => { const before = MISSIONS.filter(m => m.done()).length; encaisser(d.id, today(), true); render(); toast(`Règlement enregistré et lettré (lettre ${docById(d.id).lettrage})`); checkMissionToast(before); },
-  payer:d => { payer(d.id, today(), true); render(); toast("Paiement fournisseur enregistré et lettré"); },
+  encaisser:d => { const before = MISSIONS.filter(m => m.done()).length; const mine = docById(d.id).user; encaisser(d.id, today(), true); render(); toast(`Règlement enregistré et lettré (lettre ${docById(d.id).lettrage})` + (!mine && currentMission() && currentMission().id === "reglement" ? ". Pour la mission, encaissez votre propre facture, celle qui est surlignée." : "")); checkMissionToast(before); },  payer:d => { payer(d.id, today(), true); render(); toast("Paiement fournisseur enregistré et lettré"); },
   sendEI:d => { const before = MISSIONS.filter(m => m.done()).length; const f = docById(d.id); f.ei = {step:0, log:[{s:0, d:today()}]}; render(); toast(`Facture ${f.id} déposée sur la plateforme agréée`); advanceEI(f.id); checkMissionToast(before); },
   ask:d => askIA(d.q),
   quiz:d => { S.quiz = S.quiz || {}; S.quiz[d.i] = Number(d.j); const y = window.scrollY; render(); window.scrollTo({top:y}); },
@@ -938,8 +934,7 @@ function askIA(q){
   if (!q.trim()) return;
   const before = MISSIONS.filter(m => m.done()).length;
   S.chat.push({who:"u", html:esc(q)}, {who:"b", html:answer(q)});
-  S.chat = S.chat.slice(-30); S.flags.askedIA = true; render(); checkMissionToast(before);
-}
+  S.chat = S.chat.slice(-30); S.flags.askedIA = true; if (/tva/i.test(q)) S.flags.sawTVA = true; render(); checkMissionToast(before);}
 
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
